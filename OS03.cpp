@@ -1,14 +1,18 @@
 #include <iostream>
 #include <windows.h>
+#include <iomanip>
+#include <vector>
 #define ONE_SEC 1000
 using namespace std;
 
-// CPU Load °è»ê
-double GetCpuLoad() {
-    FILETIME idleTime, kernelTime, userTime;
-    GetSystemTimes(&idleTime, &kernelTime, &userTime); 
+// CPU Load ê³„ì‚° í•¨ìˆ˜
+double CPU_Load() {
+    static ULARGE_INTEGER prevIdleTime = { 0, 0 }, prevKernelTime = { 0, 0 }, prevUserTime = { 0, 0 };
 
-    // FILETIME ±¸Á¶Ã¼´Â 64ºñÆ® °ªÀ¸·Î º¯È¯ÇÕ´Ï´Ù.
+    FILETIME idleTime, kernelTime, userTime;
+    GetSystemTimes(&idleTime, &kernelTime, &userTime);
+
+    // FILETIME êµ¬ì¡°ì²´ë¥¼ ULARGE_INTEGERë¡œ ë³€í™˜
     ULARGE_INTEGER idle, kernel, user;
     idle.LowPart = idleTime.dwLowDateTime;
     idle.HighPart = idleTime.dwHighDateTime;
@@ -17,37 +21,88 @@ double GetCpuLoad() {
     user.LowPart = userTime.dwLowDateTime;
     user.HighPart = userTime.dwHighDateTime;
 
-    // ÀüÃ¼ CPU ½Ã°£ °è»ê
-    ULONGLONG totalKernelAndUser = kernel.QuadPart + user.QuadPart;
-    ULONGLONG totalIdle = idle.QuadPart;
+    // ì´ì „ ì‹œê°„ê³¼ í˜„ì¬ ì‹œê°„ì˜ ì°¨ì´ë¥¼ ì´ìš©í•˜ì—¬ CPU ë¡œë“œ ê³„ì‚°
+    ULONGLONG idleDiff = idle.QuadPart - prevIdleTime.QuadPart;
+    ULONGLONG kernelDiff = kernel.QuadPart - prevKernelTime.QuadPart;
+    ULONGLONG userDiff = user.QuadPart - prevUserTime.QuadPart;
+    ULONGLONG totalDiff = (kernelDiff + userDiff);
+    ULONGLONG usageDiff = totalDiff - idleDiff;
 
-    // CPU ·Îµå °è»ê
-    double cpuLoad = 1.0 - (static_cast<double>(totalIdle) / static_cast<double>(totalKernelAndUser));
+    // ì´ì „ ê°’ì„ í˜„ì¬ ê°’ìœ¼ë¡œ ì—…ë°ì´íŠ¸
+    prevIdleTime = idle;
+    prevKernelTime = kernel;
+    prevUserTime = user;
 
-    return cpuLoad * 100.0; // ÆÛ¼¾Æ®·Î º¯È¯
+    double cpuLoad = static_cast<double>(usageDiff) / static_cast<double>(totalDiff) * 100.0;
+    return cpuLoad;
 }
 
-// 1ÃÊ¸¶´Ù È­¸é¿¡ ÇöÀç½Ã°£, ÇöÀç CPU Load, 5/10/15ÃÊ µ¿¾È Æò±Õ CPU Load Ãâ·Â
+// ë²¡í„°ì˜ í‰ê· ê°’ ê³„ì‚° í•¨ìˆ˜
+double CalculateAverage(const vector<double>& data) {
+    if (data.empty()) return 0.0;
+    double sum = 0;
+    for (double value : data) {
+        sum += value;
+    }
+    return sum / data.size();
+}
+
+// 1ì´ˆë§ˆë‹¤ í˜„ì¬ CPU Loadì™€ 5, 10, 15ì´ˆ í‰ê· ì„ ì¶œë ¥
 void Print_per_sec() {
     SYSTEMTIME st;
+    vector<double> load5, load10, load15;
 
-    GetLocalTime(&st);
-    cout << st.wYear << "."
-        << st.wMonth << "."
-        << st.wDay << " "
-        << st.wHour << ":"
-        << st.wMinute << ":"
-        << st.wSecond << " : ";
+    int count = 0;
+
+    while (1) {
+        GetLocalTime(&st);
+        cout << st.wYear << "."
+            << st.wMonth << "."
+            << st.wDay << " "
+            << st.wHour << ":"
+            << st.wMinute << ":"
+            << st.wSecond << " : ";
+
+        double load = CPU_Load();
+        if (load >= 0.0) {
+            cout << fixed << setprecision(2);
+            cout <<"[CPU Load: " << load << "%] ";
+
+            // ìµœê·¼ 5, 10, 15ì´ˆì˜ CPU ë¡œë“œë¥¼ ì €ì¥
+            load5.push_back(load);
+            load10.push_back(load);
+            load15.push_back(load);
+
+            if (load5.size() > 5) {
+                load5.erase(load5.begin()); // ì´ˆê³¼ëœ ê°’ ì œê±°
+            }
+            if (load10.size() > 10) {
+                load10.erase(load10.begin()); // ì´ˆê³¼ëœ ê°’ ì œê±°
+            }
+            if (load15.size() > 15) {
+                load15.erase(load15.begin()); // ì´ˆê³¼ëœ ê°’ ì œê±°
+            }
+
+            // 5, 10, 15ì´ˆ í‰ê·  ê³„ì‚°
+            double avg5 = CalculateAverage(load5);
+            double avg10 = CalculateAverage(load10);
+            double avg15 = CalculateAverage(load15);
+
+            // 5, 10, 15ì´ˆ í‰ê·  ì¶œë ¥
+            if (count >= 5) cout << "[5sec avg: " << avg5 << "%] ";
+            if (count >= 10) cout << "[10sec avg: " << avg10 << "%] ";
+            if (count >= 15) cout << "[15sec avg: " << avg15 << "%] ";
+
+            cout << '\n';
+        }
+
+        Sleep(ONE_SEC); // 1ì´ˆ ê°„ê²©ìœ¼ë¡œ ì¶œë ¥
+        count++;
+    }
 }
 
 int main() {
-    while (1) {
-        Print_per_sec();
-        double load = GetCpuLoad();
-        if (load >= 0.0) {
-            std::cout << load << "%\n";
-        }
-        Sleep(ONE_SEC); // 1ÃÊ °£°İÀ¸·Î Ãâ·Â
-    }
+    Print_per_sec();
     return 0;
 }
+
