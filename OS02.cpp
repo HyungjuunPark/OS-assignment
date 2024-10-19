@@ -33,6 +33,5 @@ void Print_per_sec() {
 
 int main() {
     Print_per_sec();
-
     return 0;
 }
