@@ -51,7 +51,6 @@ double CalculateAverage(const vector<double>& data) {
 void Print_per_sec() {
     SYSTEMTIME st;
     vector<double> load5, load10, load15;
-
     int count = 0;
 
     while (1) {
