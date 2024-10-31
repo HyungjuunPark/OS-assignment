@@ -13,7 +13,7 @@ struct ProcessInfo {
     DWORD parentProcessID;
 };
 
-// TCHAR ¹è¿­À» stringÀ¸·Î º¯È¯ÇÏ´Â ÇÔ¼ö
+// TCHAR ë°°ì—´ì„ stringìœ¼ë¡œ ë³€í™˜í•˜ëŠ” í•¨ìˆ˜
 string ConvertTCharToString(const TCHAR* tCharStr) {
     char buffer[MAX_PATH];
     WideCharToMultiByte(CP_UTF8, 0, tCharStr, -1, buffer, sizeof(buffer), NULL, NULL);
@@ -32,7 +32,7 @@ vector<ProcessInfo> getProcessList() {
     PROCESSENTRY32 pe32;
     pe32.dwSize = sizeof(PROCESSENTRY32);
 
-    // Ã¹ ¹øÂ° ÇÁ·Î¼¼½º °¡Á®¿À±â
+    // ì²« ë²ˆì§¸ í”„ë¡œì„¸ìŠ¤ ê°€ì ¸ì˜¤ê¸°
     if (Process32First(hSnapshot, &pe32)) {
         do {
             ProcessInfo pInfo;
@@ -48,9 +48,9 @@ vector<ProcessInfo> getProcessList() {
     return processes;
 }
 
-// ÇÁ·Î¼¼½º Á¤º¸¸¦ Ãâ·ÂÇÏ´Â ÇÔ¼ö
+// í”„ë¡œì„¸ìŠ¤ ì •ë³´ë¥¼ ì¶œë ¥í•˜ëŠ” í•¨ìˆ˜
 void printProcessTree(const vector<ProcessInfo>& processes) {
-    // ÇÁ·Î¼¼½º ID¿Í ÀÌ¸§À» ¸ÅÇÎÇÏ´Â ¸Ê »ı¼º
+    // í”„ë¡œì„¸ìŠ¤ IDì™€ ì´ë¦„ì„ ë§¤í•‘í•˜ëŠ” ë§µ ìƒì„±
     map<DWORD, string> processMap;
     for (const auto& p : processes) {
         processMap[p.processID] = p.processName;
@@ -59,24 +59,18 @@ void printProcessTree(const vector<ProcessInfo>& processes) {
     cout << "################### Process Tree ######################" << '\n';
     cout << "Process Name\t\tProcess ID\tParent Process ID" << '\n';
 
-    // ¸ğµç ÇÁ·Î¼¼½º Ãâ·Â
+    // ëª¨ë“  í”„ë¡œì„¸ìŠ¤ ì¶œë ¥
     for (const auto& p : processes) {
         cout << p.processName << "\t"
             << p.processID << "\t\t"
-            << p.parentProcessID << '\n'; // ÇÁ·Î¼¼½º ÀÌ¸§, ÇÁ·Î¼¼½º ID, ºÎ¸ğ ÇÁ·Î¼¼½º ID ¼øÀ¸·Î Ãâ·Â
+            << p.parentProcessID << '\n';
     }
 }
 
 int main() {
     vector<ProcessInfo> processes = getProcessList();
-
-    if (processes.empty()) {
-        cout << "No running processes found." << '\n';
-    }
-    else {
-        cout << "Number of running processes: " << processes.size() << '\n';
-        printProcessTree(processes);
-    }
+    cout << "Number of running processes: " << processes.size() << '\n';
+    printProcessTree(processes);
 
     return 0;
 }
