@@ -16,7 +16,6 @@ DWORD CountProcess() {
 // 1초마다 화면에 현재시간, 프로세스 수 출력
 void Print_per_sec() {
     SYSTEMTIME st;
-
     while (true) {
         GetLocalTime(&st);
         DWORD processCount = CountProcess();
