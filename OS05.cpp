@@ -3,25 +3,27 @@
 #include <thread>
 #include <chrono>
 #include <fstream>
-#include <mutex>
+#include <sstream>
 #include <iomanip>
+#include <vector>
+#include <mutex>
+#include <Windows.h>
 
 using namespace std;
 
-constexpr int MAX_SIZE = 100; // ÃÖ´ë Çà·Ä Å©±â
-constexpr int MAX_MATRICES = 10; // ÃÖ´ë Çà·Ä °³¼ö
-constexpr int RAND_MIN_VAL = -3; // ·£´ı °ªÀÇ ÃÖ¼Ò°ª
-constexpr int RAND_MAX_VAL = 3; // ·£´ı °ªÀÇ ÃÖ´ë°ª
-mutex mtx; // ÆÄÀÏ ¾²±â ½Ã ½º·¹µå ¾ÈÀüÀ» À§ÇÑ mutex
+constexpr int MAX_SIZE = 100; // ìµœëŒ€ í–‰ë ¬ í¬ê¸°
+constexpr int RAND_MIN_VAL = -3; // ëœë¤ ê°’ì˜ ìµœì†Œê°’
+constexpr int RAND_MAX_VAL = 3; // ëœë¤ ê°’ì˜ ìµœëŒ€ê°’
+mutex mtx;
 
-// Çà·Ä Å¸ÀÔ Á¤ÀÇ
+// í–‰ë ¬ íƒ€ì… ì •ì˜
 struct Matrix {
     int rows;
     int cols;
     int data[MAX_SIZE][MAX_SIZE];
 };
 
-// ÁÖ¾îÁø Çà(row)°ú ¿­(col)À» °¡Áø ·£´ı Çà·Ä »ı¼º ÇÔ¼ö
+// ì£¼ì–´ì§„ í–‰ê³¼ ì—´ì„ ê°€ì§„ ëœë¤ í–‰ë ¬ ìƒì„± í•¨ìˆ˜
 Matrix generateMatrix(int rows, int cols) {
     random_device rd;
     mt19937 gen(rd());
@@ -37,101 +39,92 @@ Matrix generateMatrix(int rows, int cols) {
     return matrix;
 }
 
-// µÎ Çà·ÄÀ» °öÇÏ´Â ÇÔ¼ö
+// ë‘ í–‰ë ¬ì„ ê³±í•˜ëŠ” í•¨ìˆ˜
 Matrix multiplyMatrices(const Matrix& A, const Matrix& B) {
     Matrix result;
     result.rows = A.rows;
     result.cols = B.cols;
 
-    // °¢ ¿ø¼Ò °è»êÀ» À§ÇÑ ½º·¹µå ÀÛ¾÷ Á¤ÀÇ
+    // ê° í•­ëª©ì„ ë³„ë„ ìŠ¤ë ˆë“œì—ì„œ ê³„ì‚°
     auto worker = [&A, &B, &result](int i, int j) {
+        Sleep(1000); // 1ì´ˆ ëŒ€ê¸°
         result.data[i][j] = 0;
-        for (int k = 0; k < A.cols; ++k)
+        for (int k = 0; k < A.cols; ++k) {
             result.data[i][j] += A.data[i][k] * B.data[k][j];
+        }
         };
 
-    // °¢ ¿ø¼Ò¸¦ ½º·¹µå·Î °è»ê
-    thread threads[MAX_SIZE * MAX_SIZE];
-    int thread_index = 0;
+    vector<thread> threads;
     for (int i = 0; i < result.rows; ++i) {
         for (int j = 0; j < result.cols; ++j) {
-            threads[thread_index++] = thread(worker, i, j);
+            threads.push_back(thread(worker, i, j));
         }
     }
-
-    for (int i = 0; i < thread_index; ++i)
-        threads[i].join(); // ¸ğµç ½º·¹µå°¡ ¿Ï·áµÉ ¶§±îÁö ´ë±â
+    for (auto& t : threads) {
+        t.join();
+    }
 
     return result;
 }
 
-// Çà·ÄÀÇ Â÷¿ø°ú µ¥ÀÌÅÍ¸¦ Ãâ·ÂÇÏ´Â ÇÔ¼ö
+// í–‰ë ¬ì˜ ì°¨ì›ê³¼ ë°ì´í„°ë¥¼ ì¶œë ¥í•˜ëŠ” í•¨ìˆ˜
 void displayMatrix(const Matrix& matrix) {
     for (int i = 0; i < matrix.rows; ++i) {
         for (int j = 0; j < matrix.cols; ++j) {
-            cout << setw(4) << matrix.data[i][j] << " ";
+            cout << setw(4) << matrix.data[i][j] << '\t';
         }
-        cout << endl;
+        cout << '\n';
     }
 }
 
-// Çà·ÄÀ» ÆÄÀÏ¿¡ ±â·ÏÇÏ´Â ÇÔ¼ö
+// í–‰ë ¬ì„ íŒŒì¼ì— ê¸°ë¡í•˜ëŠ” í•¨ìˆ˜
 void writeMatrixToFile(ofstream& file, const Matrix& matrix) {
     for (int i = 0; i < matrix.rows; ++i) {
         for (int j = 0; j < matrix.cols; ++j) {
-            file << setw(4) << matrix.data[i][j] << " ";
+            file << setw(4) << matrix.data[i][j] << '\t';
         }
-        file << endl;
+        file << '\n';
     }
 }
 
-// ¸ŞÀÎ ÇÔ¼ö
+// ë©”ì¸ í•¨ìˆ˜
 int main() {
-    int num_matrices;
-    cout << "°ö¼ÀÇÒ Çà·ÄÀÇ °³¼ö¸¦ ÀÔ·ÂÇÏ¼¼¿ä (ÃÖ´ë " << MAX_MATRICES << "): ";
-    cin >> num_matrices;
+    string input;
+    getline(cin, input);
+    istringstream iss(input);
 
-    if (num_matrices < 2 || num_matrices > MAX_MATRICES) {
-        cout << "Àß¸øµÈ °³¼öÀÔ´Ï´Ù. ÃÖ¼Ò 2°³, ÃÖ´ë " << MAX_MATRICES << "°³ÀÇ Çà·ÄÀÌ ÇÊ¿äÇÕ´Ï´Ù." << endl;
-        return 1;
-    }
-
-    Matrix matrices[MAX_MATRICES];
-    for (int i = 0; i < num_matrices; ++i) {
-        int rows, cols;
-        cout << "Çà·Ä " << i + 1 << "ÀÇ Çà°ú ¿­À» ÀÔ·ÂÇÏ¼¼¿ä (¿¹: 3 4): ";
-        cin >> rows >> cols;
-
-        matrices[i] = generateMatrix(rows, cols);
-        cout << "»ı¼ºµÈ Çà·Ä " << i + 1 << " (" << rows << "x" << cols << "):" << endl;
-        displayMatrix(matrices[i]);
+    vector<Matrix> matrices;
+    string dimension;
+    while (iss >> dimension) {
+        size_t x_pos = dimension.find('x');
+        int rows = stoi(dimension.substr(0, x_pos));
+        int cols = stoi(dimension.substr(x_pos + 1));
+        matrices.push_back(generateMatrix(rows, cols));
     }
 
     auto start = chrono::high_resolution_clock::now();
-    this_thread::sleep_for(chrono::milliseconds(1000)); // °è»ê Àü 1ÃÊ ´ë±â
 
     Matrix result = matrices[0];
-    ofstream file("output.txt");
+    ofstream file("result.txt");
 
-    // Çà·Ä °ö¼À ¼øÂ÷ÀûÀ¸·Î ¼öÇà
-    for (int i = 1; i < num_matrices; ++i) {
-        cout << "< " << result.rows << "x" << result.cols << " > X < "
-            << matrices[i].rows << "x" << matrices[i].cols << " > = < "
-            << result.rows << "x" << matrices[i].cols << " >" << endl;
+    cout << '\n';
+    // í–‰ë ¬ ê³±ì…ˆ ìˆœì°¨ì ìœ¼ë¡œ ìˆ˜í–‰
+    for (size_t i = 1; i < matrices.size(); ++i) {
+        cout << "<  " << result.rows << "x" << result.cols << "  > X <  "
+            << matrices[i].rows << "x" << matrices[i].cols << "  > = <  "
+            << result.rows << "x" << matrices[i].cols << "  >" << '\n';
         result = multiplyMatrices(result, matrices[i]);
     }
 
     auto end = chrono::high_resolution_clock::now();
     chrono::duration<double> duration = end - start;
-
-    cout << "°á°ú:" << endl;
+    cout << '\n';
     displayMatrix(result);
+    cout << '\n';
+    cout << "Processing time : " << fixed << setprecision(3) << duration.count() << " sec" << '\n';
 
-    cout << "Ã³¸® ½Ã°£: " << fixed << setprecision(3) << duration.count() << " ÃÊ" << endl;
-
-    file << "°á°ú:" << endl;
     writeMatrixToFile(file, result);
-    file << "Ã³¸® ½Ã°£: " << fixed << setprecision(3) << duration.count() << " ÃÊ" << endl;
+    file << "Processing time : " << fixed << setprecision(3) << duration.count() << " sec" << '\n';
     file.close();
 
     return 0;
