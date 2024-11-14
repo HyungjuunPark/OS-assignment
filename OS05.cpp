@@ -103,7 +103,6 @@ int main() {
     }
 
     auto start = chrono::high_resolution_clock::now();
-
     Matrix result = matrices[0];
     ofstream file("result.txt");
 
