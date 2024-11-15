@@ -8,7 +8,6 @@
 #include <vector>
 #include <mutex>
 #include <Windows.h>
-
 using namespace std;
 
 constexpr int MAX_SIZE = 100; // 최대 행렬 크기
