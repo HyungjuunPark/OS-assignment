@@ -1,12 +1,12 @@
-# 💻 Operating System Concepts Implementation
+#  Operating System Concepts Implementation
 > **운영체제의 핵심 원리 이해와 프로세스 및 자원 관리 시뮬레이션**
 
-## 📌 개요
+##  개요
 - **성격:** 전공 교과 운영체제 실습 과제
 - **기술 스택:** C/C++, System API (Process Management)
 - **주요 목표:** 프로세스 스케줄링 알고리즘 및 시스템 자원 모니터링 로직 구현
 
-## 🛠 주요 구현 내용
+##  주요 구현 내용
 
 ### 1. 시스템 모니터링 및 자원 분석
 - **프로세스 추적:** 현재 실행 중인 전체 프로세스 수를 계산하고, 1초마다 실시간으로 현재 시간과 프로세스 현황을 출력하는 모니터링 로직 구현.
